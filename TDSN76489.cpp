@@ -23,12 +23,9 @@
     along with TDSN76489.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <string.h>
-
 #include "TDSN76489.h"
 
-int AudioTDSN76489::reset(uint16_t noise_bits, uint16_t tapped) 
+void AudioTDSN76489::reset(uint16_t noise_bits, uint16_t tapped) 
 {
     psg.volume[0] = 0xF;
     psg.volume[1] = 0xF;
@@ -54,14 +51,13 @@ int AudioTDSN76489::reset(uint16_t noise_bits, uint16_t tapped)
 
     psg.output_channels = 0xFF; /* All Channels, both sides */
 
-    memset(psg.channel_masks[0], 0xFFFFFFFF, 4 * sizeof(uint32));
-    memset(psg.channel_masks[1], 0xFFFFFFFF, 4 * sizeof(uint32));
+    memset(psg.channel_masks[0], 0xFFFFFFFF, 4 * sizeof(uint32_t));
+    memset(psg.channel_masks[1], 0xFFFFFFFF, 4 * sizeof(uint32_t));
 
     psg.noise_shift = (1 << (noise_bits - 1));
     psg.noise_tapped = tapped;
     psg.noise_bits = noise_bits;
 
-    return 0;
 }
 
 void AudioTDSN76489::write(uint8_t data) 
@@ -131,7 +127,7 @@ void AudioTDSN76489::write(uint8_t data)
 }
 
 /* This is pretty much taken directly from Maxim's SN76489 document. */
-static __INLINE__ int parity(uint16_t input) 
+int AudioTDSN76489::parity(uint16_t input) 
 {
     input ^= input >> 8;
     input ^= input >> 4;
@@ -140,7 +136,8 @@ static __INLINE__ int parity(uint16_t input)
     return input & 1;
 }
 
-void AudioPlaySID::update(void) {
+void AudioTDSN76489::update(void)
+{
 	audio_block_t *block;
 
 	// only update if we're playing
@@ -150,13 +147,15 @@ void AudioPlaySID::update(void) {
 	block = allocate();
 	if (block == NULL) return;
 	
+	//I'm not 100% if this is correct:
+	
 	execute((uint16_t*)block->data, AUDIO_BLOCK_SAMPLES);
 
 	transmit(block);
 	release(block);
 }
 
-void AudioTDSN76489::execute(uint16_t *buf, uint32_t samples) 
+void AudioTDSN76489::execute(uint16_t *buffer, uint32_t samples) 
 {
     int32_t channels[4];
     uint32_t i, j;
@@ -208,19 +207,19 @@ void AudioTDSN76489::execute(uint16_t *buf, uint32_t samples)
             }
         }
 
-        buf[i << 1] = (channels[0] & psg.channel_masks[0][0]) +
+        buffer[i << 1] = (channels[0] & psg.channel_masks[0][0]) +
                       (channels[1] & psg.channel_masks[0][1]) +
                       (channels[2] & psg.channel_masks[0][2]) +
                       (channels[3] & psg.channel_masks[0][3]);
 
-        buf[(i << 1) + 1] = (channels[0] & psg.channel_masks[1][0]) +
+        buffer[(i << 1) + 1] = (channels[0] & psg.channel_masks[1][0]) +
                             (channels[1] & psg.channel_masks[1][1]) +
                             (channels[2] & psg.channel_masks[1][2]) +
                             (channels[3] & psg.channel_masks[1][3]);
     }
 }
 
-void setOutput(uint8_t data) 
+void AudioTDSN76489::setOutput(uint8_t data) 
 {
     psg.output_channels = data;
 

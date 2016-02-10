@@ -67,16 +67,16 @@
 class AudioTDSN76489 : public AudioStream
 {
 	public:
+
 		AudioTDSN76489(void) : AudioStream(0, NULL) { reset(NOISE_BITS_SMS, NOISE_TAPPED_SMS); }
-		AudioTDSN76489(uint16_t noise_bits, uint16_t tapped) : AudioStream(0, NULL) { reset(noise_bits, tapped); }
 		void reset(uint16_t noise_bits, uint16_t tapped);
 		void write(uint8_t data);
-		virtual void update(void);
 		void setOutput(uint8_t data); 
 		inline bool isPlaying(void) { return playing; }
-	
-	private:
+		virtual void update(void);
 
+	private:
+		
 		volatile bool playing;
 		typedef struct sn76489_struct {
 			uint8_t volume[4];
@@ -92,12 +92,13 @@ class AudioTDSN76489 : public AudioStream
 			uint8_t output_channels;
 			uint32_t channel_masks[2][4];
 			float clocks_per_sample;
-		} psg;
-		
-		void AudioTDSN76489::execute(uint16_t *buf, uint32_t samples);
+		} _psg;
+		_psg psg;
+		void execute(uint16_t *buf, uint32_t samples);
+		int parity(uint16_t input);
 
 		/* These constants came from Maxim's core (then doubled). */
-		static const uint16_t volume_values[16] = { 
+		const uint16_t volume_values[16] = { 
     		1784, 1548, 1338, 1150,  984,  834,  702,  584,
      		478,  384,  300,  226,  160,  100,   48,    0
 		};	
