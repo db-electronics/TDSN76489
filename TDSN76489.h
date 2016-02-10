@@ -91,7 +91,6 @@ class AudioTDSN76489 : public AudioStream
 			uint8_t enabled_channels;
 			uint8_t output_channels;
 			uint32_t channel_masks[2][4];
-			float clocks_per_sample;
 		} _psg;
 		_psg psg;
 		void execute(uint16_t *buf, uint32_t samples);

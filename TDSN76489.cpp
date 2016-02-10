@@ -155,14 +155,14 @@ void AudioTDSN76489::update(void)
 	release(block);
 }
 
-void AudioTDSN76489::execute(uint16_t *buffer, uint32_t samples) 
+void AudioTDSN76489::execute(uint16_t *buffer, uint32_t samples)
 {
     int32_t channels[4];
     uint32_t i, j;
 
     for(i = 0; i < samples; ++i) {
         for(j = 0; j < 3; ++j) {
-            psg.counter[j] -= psg.clocks_per_sample;
+            psg.counter[j] -= CLOCKSPERSAMPLE;
             channels[j] = ((psg.enabled_channels >> j) & 0x01) *
                           psg.tone_state[j] * volume_values[psg.volume[j]];
             if(psg.counter[j] <= 0.0f) {
