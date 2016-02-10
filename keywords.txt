@@ -6,21 +6,34 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-dbDumper		KEYWORD1
+AudioTDSN76489		KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
-detectCart		KEYWORD2
-getFlashID		KEYWORD2
-readWord		KEYWORD2
-readByte		KEYWORD2
-writeWord		KEYWORD2
-writeByte		KEYWORD2
+reset				KEYWORD2
+write				KEYWORD2
+setOutput			KEYWORD2
+update				KEYWORD2
+isPlaying			KEYWORD2
+writeByte			KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
 #######################################
-devType		KEYWORD3
+
+NOISE_TAPPED_NORMAL KEYWORD3
+NOISE_BITS_NORMAL   KEYWORD3
+NOISE_TAPPED_SMS    KEYWORD3
+NOISE_BITS_SMS      KEYWORD3
+TONE0_RIGHT			KEYWORD3
+TONE1_RIGHT			KEYWORD3
+TONE2_RIGHT			KEYWORD3
+NOISE_RIGHT			KEYWORD3
+TONE0_LEFT			KEYWORD3 
+TONE1_LEFT			KEYWORD3
+TONE2_LEFT			KEYWORD3
+NOISE_LEFT			KEYWORD3
+
 

@@ -28,14 +28,6 @@
 
 #include "TDSN76489.h"
 
-
-
-int AudioTDSN76489::init(uint16_t noise_bits, uint16_t tapped) 
-{
-    psg.enabled_channels = 0x0F;
-    return sn76489_reset(noise_bits, tapped);
-}
-
 int AudioTDSN76489::reset(uint16_t noise_bits, uint16_t tapped) 
 {
     psg.volume[0] = 0xF;
@@ -72,37 +64,37 @@ int AudioTDSN76489::reset(uint16_t noise_bits, uint16_t tapped)
     return 0;
 }
 
-void AudioTDSN76489::write(uint8_t byte) 
+void AudioTDSN76489::write(uint8_t data) 
 {    
-	if(byte & 0x80) {
+	if(data & 0x80) {
         /* This is a LATCH/DATA byte */
-        psg.latched_reg = (byte & 0x70);
+        psg.latched_reg = (data & 0x70);
 
         switch(psg.latched_reg) {
             case LATCH_TONE0:
-                psg.tone[0] = (psg.tone[0] & 0x3F0) | (byte & 0x0F);
+                psg.tone[0] = (psg.tone[0] & 0x3F0) | (data & 0x0F);
                 break;
             case LATCH_TONE1:
-                psg.tone[1] = (psg.tone[1] & 0x3F0) | (byte & 0x0F);
+                psg.tone[1] = (psg.tone[1] & 0x3F0) | (data & 0x0F);
                 break;
             case LATCH_TONE2:
-                psg.tone[2] = (psg.tone[2] & 0x3F0) | (byte & 0x0F);
+                psg.tone[2] = (psg.tone[2] & 0x3F0) | (data & 0x0F);
                 break;
             case LATCH_NOISE:
-                psg.noise = (byte & 0x07);
+                psg.noise = (data & 0x07);
                 psg.noise_shift = 1 << (psg.noise_bits - 1);
                 break;
             case LATCH_VOL0:
-                psg.volume[0] = (byte & 0x0F);
+                psg.volume[0] = (data & 0x0F);
                 break;
             case LATCH_VOL1:
-                psg.volume[1] = (byte & 0x0F);
+                psg.volume[1] = (data & 0x0F);
                 break;
             case LATCH_VOL2:
-                psg.volume[2] = (byte & 0x0F);
+                psg.volume[2] = (data & 0x0F);
                 break;
             case LATCH_VOL3:
-                psg.volume[3] = (byte & 0x0F);
+                psg.volume[3] = (data & 0x0F);
                 break;
         }
     }
@@ -110,29 +102,29 @@ void AudioTDSN76489::write(uint8_t byte)
         /* This is a DATA byte */
         switch(psg.latched_reg) {
             case LATCH_TONE0:
-                psg.tone[0] = (psg.tone[0] & 0x000F) | ((byte & 0x3F) << 4);
+                psg.tone[0] = (psg.tone[0] & 0x000F) | ((data & 0x3F) << 4);
                 break;
             case LATCH_TONE1:
-                psg.tone[1] = (psg.tone[1] & 0x000F) | ((byte & 0x3F) << 4);
+                psg.tone[1] = (psg.tone[1] & 0x000F) | ((data & 0x3F) << 4);
                 break;
             case LATCH_TONE2:
-                psg.tone[2] = (psg.tone[2] & 0x000F) | ((byte & 0x3F) << 4);
+                psg.tone[2] = (psg.tone[2] & 0x000F) | ((data & 0x3F) << 4);
                 break;
             case LATCH_NOISE:
-                psg.noise = (byte & 0x07);
+                psg.noise = (data & 0x07);
                 psg.noise_shift = 1 << (psg.noise_bits - 1);
                 break;
             case LATCH_VOL0:
-                psg.volume[0] = (byte & 0x0F);
+                psg.volume[0] = (data & 0x0F);
                 break;
             case LATCH_VOL1:
-                psg.volume[1] = (byte & 0x0F);
+                psg.volume[1] = (data & 0x0F);
                 break;
             case LATCH_VOL2:
-                psg.volume[2] = (byte & 0x0F);
+                psg.volume[2] = (data & 0x0F);
                 break;
             case LATCH_VOL3:
-                psg.volume[3] = (byte & 0x0F);
+                psg.volume[3] = (data & 0x0F);
                 break;
         }
     }
@@ -164,8 +156,7 @@ void AudioPlaySID::update(void) {
 	release(block);
 }
 
-void AudioTDSN76489::execute(uint16_t *buf,
-                             uint32_t samples) 
+void AudioTDSN76489::execute(uint16_t *buf, uint32_t samples) 
 {
     int32_t channels[4];
     uint32_t i, j;
@@ -222,14 +213,14 @@ void AudioTDSN76489::execute(uint16_t *buf,
                       (channels[2] & psg.channel_masks[0][2]) +
                       (channels[3] & psg.channel_masks[0][3]);
 
-        //buf[(i << 1) + 1] = (channels[0] & psg.channel_masks[1][0]) +
-        //                    (channels[1] & psg.channel_masks[1][1]) +
-        //                    (channels[2] & psg.channel_masks[1][2]) +
-        //                    (channels[3] & psg.channel_masks[1][3]);
+        buf[(i << 1) + 1] = (channels[0] & psg.channel_masks[1][0]) +
+                            (channels[1] & psg.channel_masks[1][1]) +
+                            (channels[2] & psg.channel_masks[1][2]) +
+                            (channels[3] & psg.channel_masks[1][3]);
     }
 }
 
-void sn76489_set_output_channels(uint8_t data) 
+void setOutput(uint8_t data) 
 {
     psg.output_channels = data;
 
