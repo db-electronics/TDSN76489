@@ -212,10 +212,10 @@ void AudioTDSN76489::execute(uint16_t *buffer, uint32_t samples)
                       (channels[2] & psg.channel_masks[0][2]) +
                       (channels[3] & psg.channel_masks[0][3]);
 
-        buffer[(i << 1) + 1] = (channels[0] & psg.channel_masks[1][0]) +
-                            (channels[1] & psg.channel_masks[1][1]) +
-                            (channels[2] & psg.channel_masks[1][2]) +
-                            (channels[3] & psg.channel_masks[1][3]);
+        //buffer[(i << 1) + 1] = (channels[0] & psg.channel_masks[1][0]) +
+        //                    (channels[1] & psg.channel_masks[1][1]) +
+        //                    (channels[2] & psg.channel_masks[1][2]) +
+        //                    (channels[3] & psg.channel_masks[1][3]);
     }
 }
 
