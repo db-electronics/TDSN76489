@@ -123,7 +123,7 @@ void AudioTDSN76489::write(uint8_t data)
 }
 
 /* This is pretty much taken directly from Maxim's SN76489 document. */
-int AudioTDSN76489::parity(uint16_t input) 
+int AudioTDSN76489::parity(int input) 
 {
     input ^= input >> 8;
     input ^= input >> 4;
@@ -153,27 +153,33 @@ void AudioTDSN76489::update(void)
 
 }
 
-void AudioTDSN76489::execute(int16_t *buf, uint32_t samples)
+void AudioTDSN76489::execute(short* buf, uint32_t samples)
 {
     int32_t channels[4];
-    uint32_t i, j;
+    uint32_t sampleNum, chNum;
 
-    for(i = 0; i < samples; i++) {
-        for(j = 0; j < 2; j++) {
-            psg.counter[j] -= psg.clockspersample;
-            channels[j] = psg.tone_state[j] * volume_values[psg.volume[j]];
-            if(psg.counter[j] <= 0.0f) {
-                if(psg.tone[j] < 7) {
+    for(sampleNum = 0; sampleNum < samples; sampleNum++) {
+        for(chNum = 0; chNum < 2; chNum++) 
+		{
+			//decrement counter by CLOCKPERSAMPLE	
+            psg.counter[chNum] -= psg.clockspersample;
+
+			//essentially -1 or 1 * channel volume			
+            channels[chNum] = psg.tone_state[chNum] * volume_values[psg.volume[chNum]];
+			
+			//have we reached count 0
+            if(psg.counter[chNum] <= 0.0f) {
+                if(psg.tone[chNum] < 7) {
                     /* The PSG doesn't change states if the tone isn't at least
                        7, this fixes the "Sega" at the beginning of Sonic The
                        Hedgehog 2 for the Game Gear. */
-                    psg.tone_state[j] = 1;
+                    psg.tone_state[chNum] = 1;
                 }
                 else {
-                    psg.tone_state[j] = -psg.tone_state[j];
+                    psg.tone_state[chNum] = -psg.tone_state[chNum];
                 }
-
-                psg.counter[j] += psg.tone[j];
+				//reset counter
+                psg.counter[chNum] += psg.tone[chNum];
             }
         }
 
@@ -203,7 +209,7 @@ void AudioTDSN76489::execute(int16_t *buf, uint32_t samples)
             }
         }
 
-        *(buf++) = ( channels[0] + channels[1] + channels[2] + channels[3] );
+        buf[sampleNum] = ( channels[0] + channels[1] + channels[2] );
     }
 }
 

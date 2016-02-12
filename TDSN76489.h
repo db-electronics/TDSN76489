@@ -92,8 +92,8 @@ class AudioTDSN76489 : public AudioStream
 		} _psg;
 		_psg psg;
 
-		void execute(int16_t *buf, uint32_t samples);
-		int parity(uint16_t input);
+		void execute(short* buf, uint32_t samples);
+		int parity(int input);
 
 		/* These constants came from Maxim's core (then doubled). */
 		//const int16_t volume_values[16] = { 
