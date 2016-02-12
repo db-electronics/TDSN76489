@@ -49,15 +49,11 @@ void AudioTDSN76489::reset(uint16_t noise_bits, uint16_t tapped)
     psg.tone_state[2] = 1;
     psg.tone_state[3] = 1;
 
-    psg.output_channels = 0xFF; /* All Channels, both sides */
-
-    memset(psg.channel_masks[0], 0xFFFFFFFF, 4 * sizeof(uint32_t));
-    memset(psg.channel_masks[1], 0xFFFFFFFF, 4 * sizeof(uint32_t));
+	psg.clockspersample = (SN76489CLOCK / 16.0f / AUDIO_SAMPLE_RATE_EXACT);
 
     psg.noise_shift = (1 << (noise_bits - 1));
     psg.noise_tapped = tapped;
     psg.noise_bits = noise_bits;
-
 }
 
 void AudioTDSN76489::write(uint8_t data) 
@@ -143,28 +139,29 @@ void AudioTDSN76489::update(void)
 	// only update if we're playing
 	if (!playing) return;
 
+
 	// allocate the audio blocks to transmit
 	block = allocate();
 	if (block == NULL) return;
-	
+
 	//I'm not 100% if this is correct:
 	
-	execute((uint16_t*)block->data, AUDIO_BLOCK_SAMPLES);
+	execute((int16_t*)block->data, AUDIO_BLOCK_SAMPLES);
 
 	transmit(block);
 	release(block);
+
 }
 
-void AudioTDSN76489::execute(uint16_t *buffer, uint32_t samples)
+void AudioTDSN76489::execute(int16_t *buf, uint32_t samples)
 {
     int32_t channels[4];
     uint32_t i, j;
 
-    for(i = 0; i < samples; ++i) {
-        for(j = 0; j < 3; ++j) {
-            psg.counter[j] -= CLOCKSPERSAMPLE;
-            channels[j] = ((psg.enabled_channels >> j) & 0x01) *
-                          psg.tone_state[j] * volume_values[psg.volume[j]];
+    for(i = 0; i < samples; i++) {
+        for(j = 0; j < 2; j++) {
+            psg.counter[j] -= psg.clockspersample;
+            channels[j] = psg.tone_state[j] * volume_values[psg.volume[j]];
             if(psg.counter[j] <= 0.0f) {
                 if(psg.tone[j] < 7) {
                     /* The PSG doesn't change states if the tone isn't at least
@@ -180,10 +177,9 @@ void AudioTDSN76489::execute(uint16_t *buffer, uint32_t samples)
             }
         }
 
-        channels[3] = ((psg.enabled_channels >> 3) & 0x01) *
-                      (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
+        channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
 
-        psg.counter[3] -= CLOCKSPERSAMPLE;
+        psg.counter[3] -= psg.clockspersample;
         
         if(psg.counter[3] < 0.0f) {
             psg.tone_state[3] = -psg.tone_state[3];
@@ -207,46 +203,7 @@ void AudioTDSN76489::execute(uint16_t *buffer, uint32_t samples)
             }
         }
 
-        buffer[i << 1] = (channels[0] & psg.channel_masks[0][0]) +
-                      (channels[1] & psg.channel_masks[0][1]) +
-                      (channels[2] & psg.channel_masks[0][2]) +
-                      (channels[3] & psg.channel_masks[0][3]);
-
-        //buffer[(i << 1) + 1] = (channels[0] & psg.channel_masks[1][0]) +
-        //                    (channels[1] & psg.channel_masks[1][1]) +
-        //                    (channels[2] & psg.channel_masks[1][2]) +
-        //                    (channels[3] & psg.channel_masks[1][3]);
+        *(buf++) = ( channels[0] + channels[1] + channels[2] + channels[3] );
     }
 }
 
-void AudioTDSN76489::setOutput(uint8_t data) 
-{
-    psg.output_channels = data;
-
-    memset(psg.channel_masks[0], 0, 4 * sizeof(uint32_t));
-    memset(psg.channel_masks[1], 0, 4 * sizeof(uint32_t));
-
-    if(psg.output_channels & TONE0_LEFT)
-        psg.channel_masks[0][0] = 0xFFFFFFFF;
-
-    if(psg.output_channels & TONE1_LEFT)
-        psg.channel_masks[0][1] = 0xFFFFFFFF;
-
-    if(psg.output_channels & TONE2_LEFT)
-        psg.channel_masks[0][2] = 0xFFFFFFFF;
-
-    if(psg.output_channels & NOISE_LEFT)
-        psg.channel_masks[0][3] = 0xFFFFFFFF;
-
-    if(psg.output_channels & TONE0_RIGHT)
-        psg.channel_masks[1][0] = 0xFFFFFFFF;
-
-    if(psg.output_channels & TONE1_RIGHT)
-        psg.channel_masks[1][1] = 0xFFFFFFFF;
-
-    if(psg.output_channels & TONE2_RIGHT)
-        psg.channel_masks[1][2] = 0xFFFFFFFF;
-
-    if(psg.output_channels & NOISE_RIGHT)
-        psg.channel_masks[1][3] = 0xFFFFFFFF;
-}

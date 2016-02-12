@@ -25,6 +25,7 @@
 
 #include <TDSN76489.h>
 #include <Audio.h>
+#include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
 #include "SonicTitleScreen.h"
@@ -32,6 +33,8 @@
 #define ONESAMPLE   ( 1 / AUDIO_SAMPLE_RATE_EXACT ) * 1000000   // microseconds per audio sample
 #define ONE60TH     ( 1 / 60 ) * 1000000
 #define ONE50TH     ( 1 / 50 ) * 1000000
+
+//#define DEBUGWAIT   
 
 elapsedMicros vgmTimer;
 uint16_t vgmWait;
@@ -46,7 +49,9 @@ AudioControlSGTL5000     sgtl5000_1;     //xy=354,176
 
 void setup() {
 
-  AudioMemory(10);
+  Serial.begin(9600); // USB is always 12 Mbit/sec
+
+  AudioMemory(2);
   
   psgChip.reset(NOISE_BITS_SMS, NOISE_TAPPED_SMS);
   
@@ -57,21 +62,22 @@ void setup() {
   
   sgtl5000_1.enable();
   sgtl5000_1.volume(0.9);
-  sgtl5000_1.enhanceBassEnable();
-  sgtl5000_1.enhanceBass(0.5, 2.5);
 
-  delay(2000);
-
+  delay(4000);
+  Serial.println("Play VGM From Memory starting...");
   vgmWait = 0;
-
+  delay(1000);
+  psgChip.play(true);
 }
 
 void loop() {
 
   bool doneFrame = false;
+  uint8_t dummyRead;
 
   if( vgmTimer < vgmWait ) return;
 
+  Serial.println("vgmTimer reset");
   vgmTimer = 0;
 
   while(doneFrame == false)
@@ -81,6 +87,8 @@ void loop() {
       case 0x50: // 0x50 dd : PSG (SN76489/SN76496) write value dd
           vgmptr++;
           psgChip.write(*vgmptr);
+          Serial.print("psg write ");
+          Serial.println(*vgmptr, HEX);
           vgmptr++;
         break;
       case 0x61: // 0x61 nn nn : Wait n samples, n can range from 0 to 65535
@@ -89,18 +97,41 @@ void loop() {
         vgmptr++;
         vgmWait |= (uint16_t)( 0xff00 & *vgmptr << 8);
         vgmptr++;
+        Serial.print("wait ");
+        Serial.println(vgmWait, DEC);
+#ifdef DEBUGWAIT
+        while(!Serial.available());
+        dummyRead = Serial.read();
+#endif
         doneFrame = true;
         break;
         
       case 0x62: // wait 735 samples (60th of a second)
         vgmWait = ONE60TH;
         vgmptr++;
+        Serial.println("wait one 60th");
+#ifdef DEBUGWAIT
+        if( psgChip.isPlaying() )
+        {
+          Serial.println("psgChip is playing");
+        }else
+        {
+          Serial.println("psgChip is not playing");
+        }
+        while(!Serial.available());
+        dummyRead = Serial.read();
+#endif
         doneFrame = true;
         break;
         
       case 0x63: // wait 882 samples (50th of a second)
         vgmWait = ONE50TH;
         vgmptr++;
+        Serial.println("wait one 50th");
+#ifdef DEBUGWAIT
+        while(!Serial.available());
+        dummyRead = Serial.read();
+#endif
         doneFrame = true;
         break;
         
@@ -122,11 +153,22 @@ void loop() {
       case 0x7F:
         vgmWait = (ONESAMPLE * (*vgmptr & 0x0f));
         vgmptr++;
+        Serial.print("wait ");
+        Serial.println(vgmWait, DEC);
+#ifdef DEBUGWAIT
+        while(!Serial.available());
+        dummyRead = Serial.read();
+#endif
         doneFrame = true;
         break;
         
       case 0x66: // 0x66 : end of sound data
         vgmptr = &TitleScreen[0x40];
+        Serial.println("song over");
+#ifdef DEBUGWAIT
+        while(!Serial.available());
+        dummyRead = Serial.read();
+#endif
         doneFrame = true;
         break;
         

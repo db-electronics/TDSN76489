@@ -27,11 +27,11 @@
 #define TDSN76489_h_
 
 #include <AudioStream.h>
+#include <Audio.h>
 #include <inttypes.h>
 
 #define SN76489CLOCK		3579545
-#define CLOCKSPERSAMPLE		SN76489CLOCK / AUDIO_SAMPLE_RATE_EXACT
-#define CLOCKSPERUPDATE		SN76489CLOCK / (AUDIO_SAMPLE_RATE_EXACT / AUDIO_BLOCK_SAMPLES)	
+#define CLOCKSPERSAMPLE		SN76489CLOCK / 16.0f / AUDIO_SAMPLE_RATE_EXACT
 
 /* Default settings */
 #define NOISE_TAPPED_NORMAL 0x0006
@@ -71,7 +71,7 @@ class AudioTDSN76489 : public AudioStream
 		AudioTDSN76489(void) : AudioStream(0, NULL) { reset(NOISE_BITS_SMS, NOISE_TAPPED_SMS); }
 		void reset(uint16_t noise_bits, uint16_t tapped);
 		void write(uint8_t data);
-		void setOutput(uint8_t data); 
+		void play(bool val) { playing = val; } 
 		inline bool isPlaying(void) { return playing; }
 		virtual void update(void);
 
@@ -88,18 +88,21 @@ class AudioTDSN76489 : public AudioStream
 			int8_t tone_state[4];
 			uint8_t latched_reg;
 			float counter[4];
-			uint8_t enabled_channels;
-			uint8_t output_channels;
-			uint32_t channel_masks[2][4];
+			float clockspersample;
 		} _psg;
 		_psg psg;
-		void execute(uint16_t *buf, uint32_t samples);
+
+		void execute(int16_t *buf, uint32_t samples);
 		int parity(uint16_t input);
 
 		/* These constants came from Maxim's core (then doubled). */
-		const uint16_t volume_values[16] = { 
-    		1784, 1548, 1338, 1150,  984,  834,  702,  584,
-     		478,  384,  300,  226,  160,  100,   48,    0
+		//const int16_t volume_values[16] = { 
+    	//	1784, 1548, 1338, 1150,  984,  834,  702,  584,
+     	//	478,  384,  300,  226,  160,  100,   48,    0
+		//};
+		const int16_t volume_values[16] = { 
+    		892, 774, 669, 575,  492,  417,  351,  292,
+     		239, 192, 150, 113,   80,   50,   24,    0
 		};	
 };
 

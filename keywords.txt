@@ -16,6 +16,7 @@ reset				KEYWORD2
 write				KEYWORD2
 setOutput			KEYWORD2
 update				KEYWORD2
+play				KEYWORD2
 isPlaying			KEYWORD2
 writeByte			KEYWORD2
 
