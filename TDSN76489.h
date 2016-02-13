@@ -92,18 +92,18 @@ class AudioTDSN76489 : public AudioStream
 		} _psg;
 		_psg psg;
 
-		void execute(short* buf, uint32_t samples);
+		void execute(int16_t * buf, uint32_t samples);
 		int parity(int input);
 
 		/* These constants came from Maxim's core (then doubled). */
-		//const int16_t volume_values[16] = { 
-    	//	1784, 1548, 1338, 1150,  984,  834,  702,  584,
-     	//	478,  384,  300,  226,  160,  100,   48,    0
-		//};
 		const int16_t volume_values[16] = { 
-    		892, 774, 669, 575,  492,  417,  351,  292,
-     		239, 192, 150, 113,   80,   50,   24,    0
-		};	
+    		1784, 1548, 1338, 1150,  984,  834,  702,  584,
+     		478,  384,  300,  226,  160,  100,   48,    0
+		};
+		//const int16_t volume_values[16] = { 
+    	//	892, 774, 669, 575,  492,  417,  351,  292,
+     	//	239, 192, 150, 113,   80,   50,   24,    0
+		//};	
 };
 
 #endif
