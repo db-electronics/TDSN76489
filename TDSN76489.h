@@ -72,6 +72,7 @@ class AudioTDSN76489 : public AudioStream
 		void reset(uint16_t noise_bits, uint16_t tapped);
 		void write(uint8_t data);
 		void play(bool val) { playing = val; } 
+		
 		inline bool isPlaying(void) { return playing; }
 		virtual void update(void);
 
@@ -87,12 +88,11 @@ class AudioTDSN76489 : public AudioStream
 			uint16_t noise_tapped;
 			int8_t tone_state[4];
 			uint8_t latched_reg;
-			float counter[4];
-			float clockspersample;
+			int32_t counter[4];
+			int32_t clockspersample;
 		} _psg;
 		_psg psg;
 
-		void execute(int16_t * buf, uint32_t samples);
 		int parity(int input);
 
 		/* These constants came from Maxim's core (then doubled). */

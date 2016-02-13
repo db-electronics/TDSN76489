@@ -27,29 +27,29 @@
 
 void AudioTDSN76489::reset(uint16_t noise_bits, uint16_t tapped) 
 {
-    psg.volume[0] = 0xF;
+    psg.volume[0] = 0x7;
     psg.volume[1] = 0xF;
     psg.volume[2] = 0xF;
     psg.volume[3] = 0xF;
 
-    psg.tone[0] = 0x00;
+    psg.tone[0] = 0xF0;
     psg.tone[1] = 0x00;
     psg.tone[2] = 0x00;
     psg.noise = 0x00;
 
     psg.latched_reg = LATCH_TONE0;
 
-    psg.counter[0] = 0x00;
-    psg.counter[1] = 0x00;
-    psg.counter[2] = 0x00;
-    psg.counter[3] = 0x00;
+    psg.counter[0] = 0;
+    psg.counter[1] = 0;
+    psg.counter[2] = 0;
+    psg.counter[3] = 0;
 
     psg.tone_state[0] = 1;
     psg.tone_state[1] = 1;
     psg.tone_state[2] = 1;
     psg.tone_state[3] = 1;
 
-	psg.clockspersample = (SN76489CLOCK / 16.0f / AUDIO_SAMPLE_RATE_EXACT);
+	psg.clockspersample = (SN76489CLOCK / 16.0 / AUDIO_SAMPLE_RATE) * 1000;
 
     psg.noise_shift = (1 << (noise_bits - 1));
     psg.noise_tapped = tapped;
@@ -147,16 +147,13 @@ void AudioTDSN76489::update(void)
 	if (block == NULL) return;
 	
     for(sampleNum = 0; sampleNum < AUDIO_BLOCK_SAMPLES; sampleNum++) {
-        for(chNum = 0; chNum < 2; chNum++) 
+        for(chNum = 0; chNum < 3; chNum++) 
 		{
 			//decrement counter by CLOCKPERSAMPLE	
             psg.counter[chNum] -= psg.clockspersample;
 
-			//essentially -1 or 1 * channel volume			
-            channels[chNum] = psg.tone_state[chNum] * volume_values[psg.volume[chNum]];
-			
 			//have we reached count 0
-            if(psg.counter[chNum] <= 0.0f) {
+            if(psg.counter[chNum] <= 0) {
                 if(psg.tone[chNum] < 7) {
                     /* The PSG doesn't change states if the tone isn't at least
                        7, this fixes the "Sega" at the beginning of Sonic The
@@ -167,12 +164,16 @@ void AudioTDSN76489::update(void)
                     psg.tone_state[chNum] = -psg.tone_state[chNum];
                 }
 				//reset counter
-                psg.counter[chNum] += psg.tone[chNum];
+                psg.counter[chNum] += (psg.tone[chNum] * 1000);
             }
+			
+			//essentially -1 or 1 * channel volume			
+            channels[chNum] = psg.tone_state[chNum] * volume_values[psg.volume[chNum]];
+			
         }
 
-        channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
-
+        //channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
+/*
         psg.counter[3] -= psg.clockspersample;
         
         if(psg.counter[3] < 0.0f) {
@@ -196,6 +197,7 @@ void AudioTDSN76489::update(void)
                 }
             }
         }
+		*/
         block->data[sampleNum] = ( channels[0] + channels[1] + channels[2] );
     }	
 
@@ -203,64 +205,3 @@ void AudioTDSN76489::update(void)
 	transmit(block);
 	release(block);
 }
-
-void AudioTDSN76489::execute(int16_t * buf, uint32_t samples)
-{
-    int32_t channels[4];
-    uint32_t sampleNum, chNum;
-
-    for(sampleNum = 0; sampleNum < samples; sampleNum++) {
-        for(chNum = 0; chNum < 2; chNum++) 
-		{
-			//decrement counter by CLOCKPERSAMPLE	
-            psg.counter[chNum] -= psg.clockspersample;
-
-			//essentially -1 or 1 * channel volume			
-            channels[chNum] = psg.tone_state[chNum] * volume_values[psg.volume[chNum]];
-			
-			//have we reached count 0
-            if(psg.counter[chNum] <= 0.0f) {
-                if(psg.tone[chNum] < 7) {
-                    /* The PSG doesn't change states if the tone isn't at least
-                       7, this fixes the "Sega" at the beginning of Sonic The
-                       Hedgehog 2 for the Game Gear. */
-                    psg.tone_state[chNum] = 1;
-                }
-                else {
-                    psg.tone_state[chNum] = -psg.tone_state[chNum];
-                }
-				//reset counter
-                psg.counter[chNum] += psg.tone[chNum];
-            }
-        }
-
-        channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
-
-        psg.counter[3] -= psg.clockspersample;
-        
-        if(psg.counter[3] < 0.0f) {
-            psg.tone_state[3] = -psg.tone_state[3];
-            if((psg.noise & 0x03) == 0x03) {
-                psg.counter[3] = psg.counter[2];
-            }
-            else {
-                psg.counter[3] += 0x10 << (psg.noise & 0x03);
-            }
-
-            if(psg.tone_state[3] == 1) {
-                if(psg.noise & 0x04) {
-                    psg.noise_shift = (psg.noise_shift >> 1) |
-                        (parity(psg.noise_shift & psg.noise_tapped) <<
-                        (psg.noise_bits - 1));
-                }
-                else {
-                    psg.noise_shift = (psg.noise_shift >> 1) |
-                        ((psg.noise_shift & 0x01) << (psg.noise_bits - 1));
-                }
-            }
-        }
-
-        buf[sampleNum] = ( channels[0] + channels[1] + channels[2] );
-    }
-}
-
