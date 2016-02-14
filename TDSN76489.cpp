@@ -172,8 +172,8 @@ void AudioTDSN76489::update(void)
 			
         }
 
-        //channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
-/*
+        channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
+
         psg.counter[3] -= psg.clockspersample;
         
         if(psg.counter[3] < 0.0f) {
@@ -197,8 +197,8 @@ void AudioTDSN76489::update(void)
                 }
             }
         }
-		*/
-        block->data[sampleNum] = ( channels[0] + channels[1] + channels[2] );
+		
+        block->data[sampleNum] = ( channels[0] + channels[1] + channels[2] + channels[3] );
     }	
 
 	//execute((short int)*block->data, AUDIO_BLOCK_SAMPLES);
