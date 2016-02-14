@@ -49,7 +49,7 @@ void AudioTDSN76489::reset(uint16_t noise_bits, uint16_t tapped)
     psg.tone_state[2] = 1;
     psg.tone_state[3] = 1;
 
-	psg.clockspersample = (SN76489CLOCK / 16.0 / AUDIO_SAMPLE_RATE) * 1000;
+	psg.clockspersample = (SN76489CLOCK / 16.0 / AUDIO_SAMPLE_RATE) * 1024;
 
     psg.noise_shift = (1 << (noise_bits - 1));
     psg.noise_tapped = tapped;
@@ -122,6 +122,38 @@ void AudioTDSN76489::write(uint8_t data)
     }
 }
 
+//Mute all PSG channels
+void AudioTDSN76489::muteAllChannels(void)
+{
+	write(0x9F);  //channel 0 volume off
+	write(0xBF);  //channel 1 volume off
+	write(0xDF);  //channel 2 volume off
+	write(0xFF);  //channel 3 volume off
+}
+
+//Set Tone Counter
+void AudioTDSN76489::setToneCounter(uint32_t channel, uint16_t value)
+{
+	value &= 0x03FF;
+	switch(channel)
+	{
+		case 0:
+			write( (uint8_t)(0x80 & (value & 0x0F)) );
+			write( (uint8_t)(value>>4 & 0x3F) );
+			break;
+		case 1;
+			write( (uint8_t)(0xA0 & (value & 0x0F)) );
+			write( (uint8_t)(value>>4 & 0x3F) );
+			break;
+		case 2;
+			write( (uint8_t)(0xC0 & (value & 0x0F)) );
+			write( (uint8_t)(value>>4 & 0x3F) );
+			break; 
+		default:
+			break;
+	}
+}
+
 /* This is pretty much taken directly from Maxim's SN76489 document. */
 int AudioTDSN76489::parity(int input) 
 {
@@ -164,12 +196,10 @@ void AudioTDSN76489::update(void)
                     psg.tone_state[chNum] = -psg.tone_state[chNum];
                 }
 				//reset counter
-                psg.counter[chNum] += (psg.tone[chNum] * 1000);
+                psg.counter[chNum] += (psg.tone[chNum] * 1024);
             }
-			
 			//essentially -1 or 1 * channel volume			
             channels[chNum] = psg.tone_state[chNum] * volume_values[psg.volume[chNum]];
-			
         }
 
         channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
@@ -201,7 +231,6 @@ void AudioTDSN76489::update(void)
         block->data[sampleNum] = ( channels[0] + channels[1] + channels[2] + channels[3] );
     }	
 
-	//execute((short int)*block->data, AUDIO_BLOCK_SAMPLES);
 	transmit(block);
 	release(block);
 }

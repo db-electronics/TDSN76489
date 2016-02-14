@@ -70,9 +70,10 @@ class AudioTDSN76489 : public AudioStream
 
 		AudioTDSN76489(void) : AudioStream(0, NULL) { reset(NOISE_BITS_SMS, NOISE_TAPPED_SMS); }
 		void reset(uint16_t noise_bits, uint16_t tapped);
+		void muteAllChannels(void);
+		void setToneCounter(uint32_t channel, uint16_t value);
 		void write(uint8_t data);
 		void play(bool val) { playing = val; } 
-		
 		inline bool isPlaying(void) { return playing; }
 		virtual void update(void);
 
