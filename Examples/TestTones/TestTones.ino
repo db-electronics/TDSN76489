@@ -34,7 +34,7 @@
 #define ONE60TH     16667
 #define ONE50TH     20000
 
-#define VIEWPSGWRITES
+//#define DEBUGWAIT   
 
 elapsedMicros vgmTimer;
 uint16_t vgmWait;
@@ -52,36 +52,70 @@ void setup() {
   Serial.begin(9600); // USB is always 12 Mbit/sec
 
   AudioMemory(10);
-
-  //there are several variations of LFSR for the noise channel, see TDSN76489.h 
+  
   psgChip.reset(NOISE_BITS_SMS, NOISE_TAPPED_SMS);
-
-  //parameters for the audio codec
+  
   sgtl5000_1.enable();
-  sgtl5000_1.volume(0.8);
+  sgtl5000_1.volume(0.9);
 
-  //wait for thjings to settle
   delay(4000);
   Serial.println("Play VGM From Memory starting...");
   vgmWait = 0;
+  Serial.print("Audio sample rate: ");
+  Serial.println(AUDIO_SAMPLE_RATE, DEC);
+  Serial.print("Audio block samples: ");
+  Serial.println(AUDIO_BLOCK_SAMPLES, DEC);
+  Serial.print("PSG clocks per sample: ");
+  Serial.println((SN76489CLOCK / 16.0f / AUDIO_SAMPLE_RATE), DEC);
+  Serial.print("One Sample");
+  Serial.println(ONESAMPLE, DEC);
+  Serial.print("One 60th");
+  Serial.println(ONE60TH, DEC);
+  Serial.print("One 50th");
+  Serial.println(ONE50TH, DEC);
+  delay(1000);
 
-  //mute the psg, and enable VGM playback
+  //mute the psg
   psgChip.write(0x9F);  //channel 1 volume off
   psgChip.write(0xBF);  //channel 2 volume off
   psgChip.write(0xDF);  //channel 3 volume off
   psgChip.write(0xFF);  //channel 4 volume off
   psgChip.play(true);
-
-  delay(1000);
-
+  
+  //beep each tone channel for testing
+  psgChip.write(0x80);
+  psgChip.write(0x0F); //note on channel 1
+  psgChip.write(0x91); //volume on channel 1 
+  delay(500);
+  psgChip.write(0x9F);  //channel 1 volume off
+  delay(500);
+  psgChip.write(0xA0);
+  psgChip.write(0x0C); //note on channel 2
+  psgChip.write(0xB1); //volume on channel 2 
+  delay(500);
+  psgChip.write(0xBF);  //channel 2 volume off 
+  delay(500);
+  psgChip.write(0xC0);
+  psgChip.write(0x08); //note on channel 2
+  psgChip.write(0xD1); //volume on channel 2 
+  delay(500);
+  psgChip.write(0xDF);  //channel 2 volume off
+  delay(2000); 
 }
 
 void loop() {
 
   bool doneFrame = false;
+  uint8_t dummyRead;
+
+  //return;
 
   if( vgmTimer >= vgmWait )
   {
+    Serial.print("done frame Timer ");
+    Serial.print(vgmTimer, DEC);
+    Serial.print(" wait ");
+    Serial.println(vgmWait, DEC);
     vgmTimer = 0;
     
     while(doneFrame == false)
@@ -89,13 +123,11 @@ void loop() {
       switch(*vgmptr)
       {
         case 0x50: // 0x50 dd : PSG (SN76489/SN76496) write value dd
-          vgmptr++;
-          psgChip.write(*vgmptr);
-#ifdef VIEWPSGWRITES
-          Serial.print(" psg write: ");
-          Serial.print(*vgmptr, HEX);
-#endif
-          vgmptr++;
+            vgmptr++;
+            psgChip.write(*vgmptr);
+            //Serial.print("psg write ");
+            //Serial.println(*vgmptr, HEX);
+            vgmptr++;
           break;
         case 0x61: // 0x61 nn nn : Wait n samples, n can range from 0 to 65535
           vgmptr++;
@@ -103,28 +135,41 @@ void loop() {
           vgmptr++;
           vgmWait |= (uint16_t)((*vgmptr << 8) & 0xFF00 );
           vgmptr++;
-#ifdef VIEWPSGWRITES
-          Serial.print(" wait: ");
-          Serial.print(vgmWait, DEC);
-#endif
+          //Serial.print("wait ");
+          //Serial.println(vgmWait, DEC);
+  #ifdef DEBUGWAIT
+          while(!Serial.available());
+          dummyRead = Serial.read();
+  #endif
           doneFrame = true;
           break;
           
         case 0x62: // wait 735 samples (60th of a second)
           vgmWait = ONE60TH;
           vgmptr++;
-#ifdef VIEWPSGWRITES
-          Serial.print(" wait: 1/60");
-#endif
+          //Serial.println("wait one 60th");
+  #ifdef DEBUGWAIT
+          if( psgChip.isPlaying() )
+          {
+            Serial.println("psgChip is playing");
+          }else
+          {
+            Serial.println("psgChip is not playing");
+          }
+          while(!Serial.available());
+          dummyRead = Serial.read();
+  #endif
           doneFrame = true;
           break;
           
         case 0x63: // wait 882 samples (50th of a second)
           vgmWait = ONE50TH;
           vgmptr++;
-#ifdef VIEWPSGWRITES
-          Serial.print(" wait: 1/50");
-#endif
+          //Serial.println("wait one 50th");
+  #ifdef DEBUGWAIT
+          while(!Serial.available());
+          dummyRead = Serial.read();
+  #endif
           doneFrame = true;
           break;
           
@@ -146,27 +191,30 @@ void loop() {
         case 0x7F:
           vgmWait = (ONESAMPLE * (*vgmptr & 0x0f));
           vgmptr++;
-#ifdef VIEWPSGWRITES
-          Serial.print(" wait: ");
-          Serial.print(vgmWait, DEC);
-#endif
+          //Serial.print("wait ");
+          //Serial.println(vgmWait, DEC);
+  #ifdef DEBUGWAIT
+          while(!Serial.available());
+          dummyRead = Serial.read();
+  #endif
           doneFrame = true;
           break;
           
         case 0x66: // 0x66 : end of sound data
           vgmptr = &TitleScreen[0x40];
-#ifdef VIEWPSGWRITES
-          Serial.print("song over");
-#endif
-
+          //Serial.println("song over");
+  #ifdef DEBUGWAIT
+          while(!Serial.available());
+          dummyRead = Serial.read();
+  #endif
           doneFrame = true;
           break;
           
         default:
           break;
-      } //end switch
-    } //end while
-    Serial.println(" frame end");
+      }
+    }
+  
   }
 }
 

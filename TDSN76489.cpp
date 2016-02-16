@@ -310,9 +310,9 @@ void AudioTDSN76489::update(void)
         }
 
 		//essentially 0 or 1 * channel volume	
-		channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
+		//channels[3] = (psg.noise_shift & 0x01) * volume_values[psg.volume[3]];
 
-		/* to try, seems more right to me since the other channels use -1 and +1
+		/* to try, seems more right to me since the other channels use -1 and +1 */
 		if( psg.noise_shift & 0x01 )
 		{
 			channels[3] = volume_values[psg.volume[3]];
@@ -320,7 +320,6 @@ void AudioTDSN76489::update(void)
 		{
 			channels[3] = -volume_values[psg.volume[3]];
 		}
-		*/
 		
         block->data[sampleCount] = ( channels[0] + channels[1] + channels[2] + channels[3] );
     }	
