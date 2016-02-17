@@ -12,7 +12,7 @@ Linux users:
 
 Afterwards, if you wish to generate a header file which can be included in a project:
 
-xxd --include %vgmfile% &> %file%
+xxd --include %extractedvgmfile% &> %file%
 
 
 Windows users:
